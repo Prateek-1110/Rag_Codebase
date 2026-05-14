@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Data
+data/qdrant/
+data/uploads/
+
+# OS
+.DS_Store
+
+# Node
+node_modules/
+
+# IDE
+.vscode/
+
+data/qdrant/
+.venv/
+__pycache__/
