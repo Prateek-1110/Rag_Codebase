@@ -35,6 +35,8 @@ os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
 logger = logging.getLogger(__name__)
 GROQ_BASE_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "llama-3.3-70b-versatile"
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct"
 CONTEXT_MAX_TOKENS = 1200
 QUERY_TYPO_FIXES = {
     "funtion": "function",
@@ -609,17 +611,29 @@ def generate_flow_explanation(graph_lines: list[str]) -> str:
         f"Edges:\n{flow_text}"
     )
 
-    if not os.getenv("GROQ_API_KEY"):
-        return _generate_flow_explanation_rule_based([f"{caller} calls {callee}" for caller, callee in edges])
+    provider = _get_llm_provider()
 
     try:
-        text = _generate_with_groq(
-            query="Explain this call flow.", context=flow_context)
-        lines = [line.strip() for line in text.splitlines() if line.strip()]
-        if lines:
-            return "\n".join(lines[:5])
+        if provider == "openrouter":
+            if os.getenv("OPENROUTER_API_KEY"):
+                text = _generate_with_openrouter(query="Explain this call flow.", context=flow_context)
+                lines = [line.strip() for line in text.splitlines() if line.strip()]
+                if lines:
+                    return "\n".join(lines[:5])
+        elif provider == "openai":
+            if os.getenv("OPENAI_API_KEY"):
+                text = _generate_with_openai(query="Explain this call flow.", context=flow_context)
+                lines = [line.strip() for line in text.splitlines() if line.strip()]
+                if lines:
+                    return "\n".join(lines[:5])
+        else: # default/groq
+            if os.getenv("GROQ_API_KEY"):
+                text = _generate_with_groq(query="Explain this call flow.", context=flow_context)
+                lines = [line.strip() for line in text.splitlines() if line.strip()]
+                if lines:
+                    return "\n".join(lines[:5])
     except Exception as exc:
-        logger.warning("Groq flow generation failed: %s, falling back to local rule-based explanation", exc)
+        logger.warning("%s flow generation failed: %s, falling back to local rule-based explanation", provider, exc)
 
     return _generate_flow_explanation_rule_based([f"{caller} calls {callee}" for caller, callee in edges])
 
@@ -716,6 +730,69 @@ def _generate_with_groq(query: str, context: str) -> str:
         raise ValueError(f"Failed to reach Groq: {error_detail}") from exc
 
 
+def _generate_with_openrouter(query: str, context: str) -> str:
+    api_key = str(os.getenv("OPENROUTER_API_KEY", "")).strip()
+    if not api_key:
+        raise ValueError("OPENROUTER_API_KEY is not set")
+
+    user_content = (
+        "Context:\n"
+        f"{context}\n\n"
+        "Question:\n"
+        f"{query}\n\n"
+        "Answer clearly and concisely."
+    )
+
+    model_name = str(os.getenv("OPENROUTER_MODEL", OPENROUTER_MODEL)).strip() or OPENROUTER_MODEL
+    payload = {
+        "model": model_name,
+        "messages": [
+            {"role": "system", "content": "You are a helpful code assistant."},
+            {"role": "user", "content": user_content},
+        ],
+        "temperature": 0.2,
+    }
+
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib_request.Request(
+        OPENROUTER_BASE_URL,
+        data=data,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "python-requests/2.31.0",
+            "HTTP-Referer": "https://github.com/Prateek-1110/Rag_Codebase",
+            "X-Title": "Codebase Intelligence Engine",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib_request.urlopen(req, timeout=30.0) as response:
+            if response.status != 200:
+                raise ValueError(f"OpenRouter returned status {response.status}")
+
+            body = json.loads(response.read().decode("utf-8"))
+            content = str(
+                (
+                    body.get("choices", [{}])[0]
+                    .get("message", {})
+                    .get("content", "")
+                )
+            ).strip()
+            if not content:
+                raise ValueError("OpenRouter returned an empty response")
+            return content
+    except HTTPError as exc:
+        error_detail = format_tls_error(exc)
+        logger.warning("OpenRouter request failed: %s", error_detail)
+        raise ValueError(f"Failed to reach OpenRouter: {error_detail}") from exc
+    except (URLError, TimeoutError, json.JSONDecodeError) as exc:
+        error_detail = format_tls_error(exc)
+        logger.warning("OpenRouter request failed: %s", error_detail)
+        raise ValueError(f"Failed to reach OpenRouter: {error_detail}") from exc
+
+
 ## Further improved local answer generation with flow detection and explanation. #
 def _generate_local_answer(
     query: str,
@@ -790,6 +867,14 @@ def generate_answer(query: str, context: str, chunks: list[dict[str, object]]) -
             return _generate_with_groq(query=query, context=context)
         except Exception as exc:
             logger.warning("Groq generation failed: %s, falling back to local generation", exc)
+            return _generate_local_answer(query=query, context=context, chunks=chunks)
+    elif provider == "openrouter":
+        if not os.getenv("OPENROUTER_API_KEY"):
+            return _generate_local_answer(query=query, context=context, chunks=chunks)
+        try:
+            return _generate_with_openrouter(query=query, context=context)
+        except Exception as exc:
+            logger.warning("OpenRouter generation failed: %s, falling back to local generation", exc)
             return _generate_local_answer(query=query, context=context, chunks=chunks)
 
     return _generate_local_answer(query=query, context=context, chunks=chunks)
