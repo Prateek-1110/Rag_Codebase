@@ -132,38 +132,14 @@ def main() -> None:
         from ragas import evaluate
         from ragas.embeddings import embedding_factory
         from ragas.llms import llm_factory
-        
-        # 1. Try modern centralized collections (Ragas v0.4+)
-        try:
-            from ragas.metrics.collections import (
-                Faithfulness,
-                AnswerRelevancy,
-                ContextPrecisionWithReference,
-                ContextPrecisionWithoutReference
-            )
-        except ImportError:
-            # 2. Try specific submodule paths
-            try:
-                from ragas.metrics.collections.answer_relevancy import AnswerRelevancy
-                from ragas.metrics.collections.context_precision import (
-                    ContextPrecisionWithReference,
-                    ContextPrecisionWithoutReference,
-                )
-                from ragas.metrics.collections.faithfulness import Faithfulness
-            except ImportError:
-                # 3. Fallback to older direct metrics namespace
-                from ragas.metrics import Faithfulness, AnswerRelevancy
-                try:
-                    from ragas.metrics import ContextPrecision as ContextPrecisionWithReference
-                    ContextPrecisionWithoutReference = ContextPrecisionWithReference
-                except ImportError:
-                    # 4. Fallback to lowercase/instantiated metric imports
-                    from ragas.metrics import faithfulness as Faithfulness
-                    from ragas.metrics import answer_relevancy as AnswerRelevancy
-                    from ragas.metrics import context_precision as ContextPrecisionWithReference
-                    ContextPrecisionWithoutReference = ContextPrecisionWithReference
-    except ImportError as err:
-        print(f"Missing dependency or import issue: {err}")
+        from ragas.metrics.collections.answer_relevancy import AnswerRelevancy
+        from ragas.metrics.collections.context_precision import (
+            ContextPrecisionWithReference,
+            ContextPrecisionWithoutReference,
+        )
+        from ragas.metrics.collections.faithfulness import Faithfulness
+    except ImportError:
+        print("Missing dependency: ragas")
         print("Install with: pip install ragas datasets")
         sys.exit(1)
 
@@ -185,25 +161,15 @@ def main() -> None:
     try:
         factory_kwargs: dict[str, Any] = {"provider": eval_provider}
 
-        if eval_provider == "openai" or eval_provider == "openrouter":
-            factory_kwargs["provider"] = "openai"  # OpenRouter uses the OpenAI schema/client
-
-            if eval_provider == "openrouter":
-                api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
-                base_url = "https://openrouter.ai/api/v1"
-                if not api_key:
-                    print("OPENROUTER_API_KEY is required for RAGAS evaluation with provider=openrouter")
-                    sys.exit(1)
-            else:
-                api_key = os.getenv("OPENAI_API_KEY", "").strip()
-                base_url = None
-                if not api_key:
-                    print("OPENAI_API_KEY is required for RAGAS evaluation with provider=openai")
-                    sys.exit(1)
+        if eval_provider == "openai":
+            openai_api_key = os.getenv("OPENAI_API_KEY", "").strip()
+            if not openai_api_key:
+                print("OPENAI_API_KEY is required for RAGAS evaluation with provider=openai")
+                sys.exit(1)
 
             from openai import OpenAI
 
-            openai_client = OpenAI(api_key=api_key, base_url=base_url)
+            openai_client = OpenAI(api_key=openai_api_key)
             factory_kwargs["client"] = openai_client
 
         eval_llm = llm_factory(model=eval_model, **factory_kwargs)

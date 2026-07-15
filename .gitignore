@@ -23,6 +23,6 @@ node_modules/
 .vscode/
 
 data/qdrant/
-.venv/
-__pycache__/
 myenv/
+__pycache__/
+.github

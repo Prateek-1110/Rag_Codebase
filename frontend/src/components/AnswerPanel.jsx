@@ -66,19 +66,19 @@ function AnswerPanel({ response, copiedKey, onCopy }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
           whileHover={{ scale: 1.005 }}
-          className="relative overflow-hidden rounded-[2rem] border border-indigo-500/30 bg-gradient-to-b from-indigo-500/10 to-[#020617] p-8 shadow-[0_20px_50px_rgba(79,70,229,0.15)] backdrop-blur-xl"
+          className="relative overflow-hidden rounded-[2rem] border border-sky-500/30 bg-gradient-to-b from-sky-500/10 to-[#020617] p-8 shadow-[0_20px_50px_rgba(14,165,233,0.15)] backdrop-blur-xl"
         >
-          <div className="absolute top-0 right-0 h-[300px] w-[300px] bg-indigo-500/20 blur-[100px] rounded-full pointer-events-none" />
+          <div className="absolute top-0 right-0 h-[300px] w-[300px] bg-sky-500/20 blur-[100px] rounded-full pointer-events-none" />
           <div className="relative z-10 mb-6 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30">
                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 7h10"/><path d="M7 12h10"/><path d="M7 17h10"/></svg>
               </div>
-              <h3 className="text-xl font-bold text-indigo-100 font-['Outfit']">Flow Execution Path</h3>
+              <h3 className="text-xl font-bold text-sky-100 font-['Outfit']">Flow Execution Path</h3>
             </div>
             <button
               onClick={() => onCopy(flowLines.join("\n"), "flow")}
-              className="group flex items-center gap-2 rounded-xl border border-indigo-400/30 bg-indigo-500/10 px-4 py-2 text-xs font-semibold text-indigo-200 transition-all hover:bg-indigo-500/30 hover:text-white"
+              className="group flex items-center gap-2 rounded-xl border border-sky-400/30 bg-sky-500/10 px-4 py-2 text-xs font-semibold text-sky-200 transition-all hover:bg-sky-500/30 hover:text-white"
             >
               {copiedKey === "flow" ? (
                  <>
@@ -98,10 +98,10 @@ function AnswerPanel({ response, copiedKey, onCopy }) {
             {flowLines.map((line, index) => (
               <div key={`${line}-${index}`} className="flex gap-4">
                  <div className="flex flex-col items-center mt-1.5">
-                    <div className="h-2.5 w-2.5 rounded-full bg-indigo-400 shadow-[0_0_10px_rgba(129,140,248,0.8)]" />
-                    {index !== flowLines.length - 1 && <div className="h-full w-[2px] bg-indigo-500/30 my-2 rounded-full" />}
+                    <div className="h-2.5 w-2.5 rounded-full bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.8)]" />
+                    {index !== flowLines.length - 1 && <div className="h-full w-[2px] bg-sky-500/30 my-2 rounded-full" />}
                  </div>
-                 <p className="font-mono text-sm leading-relaxed text-indigo-100/90 tracking-wide pb-2">{line}</p>
+                 <p className="font-mono text-sm leading-relaxed text-sky-100/90 tracking-wide pb-2">{line}</p>
               </div>
             ))}
           </div>
@@ -114,10 +114,10 @@ function AnswerPanel({ response, copiedKey, onCopy }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
           whileHover={{ scale: 1.01 }}
-          className="relative rounded-[2rem] border border-white/5 bg-gradient-to-br from-white/[0.04] to-black/20 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-all duration-300 hover:border-purple-500/30 hover:shadow-[0_20px_60px_rgba(168,85,247,0.15)] transform-gpu hover:bg-white/[0.04]"
+          className="relative rounded-[2rem] border border-white/5 bg-gradient-to-br from-white/[0.04] to-black/20 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl transition-all duration-300 hover:border-sky-500/30 hover:shadow-[0_20px_60px_rgba(56,189,248,0.15)] transform-gpu hover:bg-white/[0.04]"
         >
           <div className="mb-8 flex items-center gap-3">
-             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30">
+             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30">
                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
              </div>
              <h3 className="text-xl font-bold text-slate-100 font-['Outfit']">Extracted Code Context</h3>

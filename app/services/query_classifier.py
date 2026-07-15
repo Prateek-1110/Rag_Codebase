@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.services.tls_http import format_tls_error
+from app.services.tls_http import format_tls_error, urlopen_with_tls
 
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -68,26 +68,9 @@ def classify_query_rule_based(query: str) -> str:
 
 
 def classify_query_llm(query: str) -> str:
-    provider = str(os.getenv("LLM_PROVIDER", "groq")).strip().lower()
-
-    if provider == "openrouter":
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        api_key = str(os.getenv("OPENROUTER_API_KEY", "")).strip()
-        model_name = str(os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct")).strip()
-        if not api_key:
-            raise ValueError("OPENROUTER_API_KEY is not set")
-    elif provider == "openai":
-        url = "https://api.openai.com/v1/chat/completions"
-        api_key = str(os.getenv("OPENAI_API_KEY", "")).strip()
-        model_name = str(os.getenv("OPENAI_MODEL", "gpt-4o-mini")).strip()
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY is not set")
-    else:  # default to groq
-        url = "https://api.groq.com/openai/v1/chat/completions"
-        api_key = str(os.getenv("GROQ_API_KEY", "")).strip()
-        model_name = str(os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")).strip()
-        if not api_key:
-            raise ValueError("GROQ_API_KEY is not set")
+    api_key = str(os.getenv("GROQ_API_KEY", "")).strip()
+    if not api_key:
+        raise ValueError("GROQ_API_KEY is not set")
 
     prompt = (
         "You are an intent classifier for a code assistant.\n"
@@ -108,7 +91,8 @@ def classify_query_llm(query: str) -> str:
         f"User query: {query}\n"
     )
 
-    print(f"CLASSIFIER PROVIDER: {provider}, MODEL: {model_name}")
+    model_name = str(os.getenv("GROQ_MODEL", GROQ_MODEL)).strip() or GROQ_MODEL
+    print("GROQ MODEL:", model_name)
     payload = {
         "model": model_name,
         "messages": [
@@ -125,25 +109,20 @@ def classify_query_llm(query: str) -> str:
     }
 
     data = json.dumps(payload).encode("utf-8")
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-        "User-Agent": "python-requests/2.31.0",
-    }
-    if provider == "openrouter":
-        headers["HTTP-Referer"] = "https://github.com/Prateek-1110/Rag_Codebase"
-        headers["X-Title"] = "Codebase Intelligence Engine"
-
     req = urllib_request.Request(
-        url,
+        GROQ_URL,
         data=data,
-        headers=headers,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "User-Agent": "python-requests/2.31.0",
+        },
         method="POST",
     )
 
-    with urllib_request.urlopen(req, timeout=10.0) as response:
+    with urlopen_with_tls(req, timeout=10.0) as response:
         if response.status != 200:
-            raise ValueError(f"LLM provider {provider} returned status {response.status}")
+            raise ValueError(f"Groq returned status {response.status}")
 
         body = response.read().decode("utf-8")
         parsed = json.loads(body)

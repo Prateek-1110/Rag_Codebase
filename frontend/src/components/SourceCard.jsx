@@ -7,16 +7,16 @@ function SourceCard({ chunk, index, copiedKey, onCopy }) {
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ delay: index * 0.08, duration: 0.4, type: "spring" }}
       whileHover={{ y: -4, scale: 1.01 }}
-      className="group relative overflow-hidden rounded-[1.5rem] border border-white/5 bg-gradient-to-br from-white/[0.04] to-black/20 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:border-purple-500/50 hover:shadow-[0_20px_50px_rgba(168,85,247,0.25)] hover:bg-white/[0.06] transform-gpu"
+      className="group relative overflow-hidden rounded-[1.5rem] border border-white/5 bg-gradient-to-br from-white/[0.04] to-black/20 p-5 shadow-[0_8px_30px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-300 hover:border-blue-500/50 hover:shadow-[0_20px_50px_rgba(59,130,246,0.25)] hover:bg-white/[0.06] transform-gpu"
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       
       <div className="relative z-10 mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/></svg>
           </div>
-          <p className="truncate text-sm font-bold tracking-wide text-slate-200 group-hover:text-purple-300 transition-colors font-['Outfit']">
+          <p className="truncate text-sm font-bold tracking-wide text-slate-200 group-hover:text-blue-300 transition-colors font-['Outfit']">
             {chunk.file_name || "Unknown file"}
           </p>
         </div>
@@ -30,7 +30,7 @@ function SourceCard({ chunk, index, copiedKey, onCopy }) {
           </div>
           <button
             onClick={() => onCopy(chunk.chunk_text || "", `chunk-${index}`)}
-            className="group/btn flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-200 transition-all hover:bg-purple-500/20 hover:border-purple-500/30 hover:text-white"
+            className="group/btn flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-200 transition-all hover:bg-blue-500/20 hover:border-blue-500/30 hover:text-white"
           >
             {copiedKey === `chunk-${index}` ? (
                <>
@@ -48,7 +48,7 @@ function SourceCard({ chunk, index, copiedKey, onCopy }) {
       </div>
 
       <div className="relative z-10 rounded-xl bg-black/40 p-1 border border-white/5 ring-1 ring-white/5 shadow-inner">
-         <pre className="code-scroll max-h-64 overflow-auto rounded-lg bg-transparent p-4 font-mono text-sm leading-relaxed text-slate-300 antialiased selection:bg-purple-500/30">
+         <pre className="code-scroll max-h-64 overflow-auto rounded-lg bg-transparent p-4 font-mono text-sm leading-relaxed text-slate-300 antialiased selection:bg-blue-500/30">
            {chunk.chunk_text || "No code available."}
          </pre>
       </div>

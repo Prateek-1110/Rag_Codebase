@@ -70,7 +70,7 @@ body {
 
 /* Premium text gradient utility */
 .text-gradient {
-  background: linear-gradient(to right, #38bdf8, #818cf8, #c084fc);
+  background: linear-gradient(to right, #38bdf8, #0ea5e9, #2563eb);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

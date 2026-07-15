@@ -1,7 +1,7 @@
 from app.services.vector_store import fetch_chunks_by_function_names
 from app.services.vector_store import search_similar_chunks_by_file
 from app.services.vector_store import fetch_all_chunks_by_file
-from app.services.tls_http import format_tls_error
+from app.services.tls_http import format_tls_error, urlopen_with_tls
 from app.services.embeddings import generate_embeddings
 from app.services.query_classifier import classify_query
 from app.services.hybrid_search import hybrid_search
@@ -35,8 +35,6 @@ os.environ['REQUESTS_CA_BUNDLE'] = certifi.where()
 logger = logging.getLogger(__name__)
 GROQ_BASE_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "llama-3.3-70b-versatile"
-OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct"
 CONTEXT_MAX_TOKENS = 1200
 QUERY_TYPO_FIXES = {
     "funtion": "function",
@@ -611,29 +609,17 @@ def generate_flow_explanation(graph_lines: list[str]) -> str:
         f"Edges:\n{flow_text}"
     )
 
-    provider = _get_llm_provider()
+    if not os.getenv("GROQ_API_KEY"):
+        return _generate_flow_explanation_rule_based([f"{caller} calls {callee}" for caller, callee in edges])
 
     try:
-        if provider == "openrouter":
-            if os.getenv("OPENROUTER_API_KEY"):
-                text = _generate_with_openrouter(query="Explain this call flow.", context=flow_context)
-                lines = [line.strip() for line in text.splitlines() if line.strip()]
-                if lines:
-                    return "\n".join(lines[:5])
-        elif provider == "openai":
-            if os.getenv("OPENAI_API_KEY"):
-                text = _generate_with_openai(query="Explain this call flow.", context=flow_context)
-                lines = [line.strip() for line in text.splitlines() if line.strip()]
-                if lines:
-                    return "\n".join(lines[:5])
-        else: # default/groq
-            if os.getenv("GROQ_API_KEY"):
-                text = _generate_with_groq(query="Explain this call flow.", context=flow_context)
-                lines = [line.strip() for line in text.splitlines() if line.strip()]
-                if lines:
-                    return "\n".join(lines[:5])
+        text = _generate_with_groq(
+            query="Explain this call flow.", context=flow_context)
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if lines:
+            return "\n".join(lines[:5])
     except Exception as exc:
-        logger.warning("%s flow generation failed: %s, falling back to local rule-based explanation", provider, exc)
+        logger.warning("Groq flow generation failed: %s, falling back to local rule-based explanation", exc)
 
     return _generate_flow_explanation_rule_based([f"{caller} calls {callee}" for caller, callee in edges])
 
@@ -705,7 +691,7 @@ def _generate_with_groq(query: str, context: str) -> str:
     )
 
     try:
-        with urllib_request.urlopen(req, timeout=30.0) as response:
+        with urlopen_with_tls(req, timeout=30.0) as response:
             if response.status != 200:
                 raise ValueError(f"Groq returned status {response.status}")
 
@@ -729,11 +715,31 @@ def _generate_with_groq(query: str, context: str) -> str:
         logger.warning("Groq request failed: %s", error_detail)
         raise ValueError(f"Failed to reach Groq: {error_detail}") from exc
 
+def _get_ollama_model() -> str:
+    env_model = os.getenv("OLLAMA_MODEL")
+    if env_model:
+        return env_model.strip()
 
-def _generate_with_openrouter(query: str, context: str) -> str:
-    api_key = str(os.getenv("OPENROUTER_API_KEY", "")).strip()
-    if not api_key:
-        raise ValueError("OPENROUTER_API_KEY is not set")
+    try:
+        url = f"{os.getenv('OLLAMA_BASE_URL', 'http://127.0.0.1:11434').rstrip('/')}/api/tags"
+        req = urllib_request.Request(url, method="GET")
+        with urllib_request.urlopen(req, timeout=3.0) as response:
+            if response.status == 200:
+                data = json.loads(response.read().decode("utf-8"))
+                models = data.get("models", [])
+                if models:
+                    return str(models[0].get("name", ""))
+    except Exception as exc:
+        logger.warning("Could not auto-detect Ollama model: %s", exc)
+
+    return "llama3.2"
+
+
+def _generate_with_ollama(query: str, context: str) -> str:
+    base_url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").rstrip("/")
+    url = f"{base_url}/api/chat"
+
+    model_name = _get_ollama_model()
 
     user_content = (
         "Context:\n"
@@ -743,54 +749,39 @@ def _generate_with_openrouter(query: str, context: str) -> str:
         "Answer clearly and concisely."
     )
 
-    model_name = str(os.getenv("OPENROUTER_MODEL", OPENROUTER_MODEL)).strip() or OPENROUTER_MODEL
     payload = {
         "model": model_name,
         "messages": [
             {"role": "system", "content": "You are a helpful code assistant."},
             {"role": "user", "content": user_content},
         ],
-        "temperature": 0.2,
+        "stream": False,
+        "options": {
+            "temperature": 0.2
+        }
     }
 
     data = json.dumps(payload).encode("utf-8")
     req = urllib_request.Request(
-        OPENROUTER_BASE_URL,
+        url,
         data=data,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "User-Agent": "python-requests/2.31.0",
-            "HTTP-Referer": "https://github.com/Prateek-1110/Rag_Codebase",
-            "X-Title": "Codebase Intelligence Engine",
-        },
+        headers={"Content-Type": "application/json"},
         method="POST",
     )
 
     try:
-        with urllib_request.urlopen(req, timeout=30.0) as response:
+        with urllib_request.urlopen(req, timeout=45.0) as response:
             if response.status != 200:
-                raise ValueError(f"OpenRouter returned status {response.status}")
+                raise ValueError(f"Ollama returned status {response.status}")
 
             body = json.loads(response.read().decode("utf-8"))
-            content = str(
-                (
-                    body.get("choices", [{}])[0]
-                    .get("message", {})
-                    .get("content", "")
-                )
-            ).strip()
+            content = str(body.get("message", {}).get("content", "")).strip()
             if not content:
-                raise ValueError("OpenRouter returned an empty response")
+                raise ValueError("Ollama returned an empty response")
             return content
-    except HTTPError as exc:
-        error_detail = format_tls_error(exc)
-        logger.warning("OpenRouter request failed: %s", error_detail)
-        raise ValueError(f"Failed to reach OpenRouter: {error_detail}") from exc
-    except (URLError, TimeoutError, json.JSONDecodeError) as exc:
-        error_detail = format_tls_error(exc)
-        logger.warning("OpenRouter request failed: %s", error_detail)
-        raise ValueError(f"Failed to reach OpenRouter: {error_detail}") from exc
+    except Exception as exc:
+        logger.warning("Ollama request failed: %s", exc)
+        raise ValueError(f"Failed to reach Ollama: {exc}") from exc
 
 
 ## Further improved local answer generation with flow detection and explanation. #
@@ -862,22 +853,44 @@ def generate_answer(query: str, context: str, chunks: list[dict[str, object]]) -
             return _generate_local_answer(query=query, context=context, chunks=chunks)
     elif provider == "groq":
         if not os.getenv("GROQ_API_KEY"):
-            return _generate_local_answer(query=query, context=context, chunks=chunks)
+            print("[DEBUG] GROQ_API_KEY not set in environment. Trying Ollama fallback.")
+            try:
+                return _generate_with_ollama(query=query, context=context)
+            except Exception as ollama_exc:
+                print("[DEBUG ERROR] Ollama fallback failed:", ollama_exc)
+                import traceback
+                traceback.print_exc()
+                logger.warning("Ollama fallback failed: %s, falling back to local generation", ollama_exc)
+                return _generate_local_answer(query=query, context=context, chunks=chunks)
         try:
+            print("[DEBUG] Attempting Groq generation...")
             return _generate_with_groq(query=query, context=context)
         except Exception as exc:
-            logger.warning("Groq generation failed: %s, falling back to local generation", exc)
-            return _generate_local_answer(query=query, context=context, chunks=chunks)
-    elif provider == "openrouter":
-        if not os.getenv("OPENROUTER_API_KEY"):
-            return _generate_local_answer(query=query, context=context, chunks=chunks)
+            print("[DEBUG ERROR] Groq generation failed:", exc)
+            import traceback
+            traceback.print_exc()
+            logger.warning("Groq generation failed: %s, falling back to Ollama fallback", exc)
+            try:
+                print("[DEBUG] Attempting Ollama fallback...")
+                return _generate_with_ollama(query=query, context=context)
+            except Exception as ollama_exc:
+                print("[DEBUG ERROR] Ollama fallback failed:", ollama_exc)
+                traceback.print_exc()
+                logger.warning("Ollama fallback failed: %s, falling back to local generation", ollama_exc)
+                return _generate_local_answer(query=query, context=context, chunks=chunks)
+    elif provider == "ollama":
         try:
-            return _generate_with_openrouter(query=query, context=context)
+            print("[DEBUG] Attempting Ollama generation...")
+            return _generate_with_ollama(query=query, context=context)
         except Exception as exc:
-            logger.warning("OpenRouter generation failed: %s, falling back to local generation", exc)
+            print("[DEBUG ERROR] Ollama generation failed:", exc)
+            import traceback
+            traceback.print_exc()
+            logger.warning("Ollama generation failed: %s, falling back to local generation", exc)
             return _generate_local_answer(query=query, context=context, chunks=chunks)
 
     return _generate_local_answer(query=query, context=context, chunks=chunks)
+
 
 
 def run_rag_pipeline(
@@ -897,6 +910,13 @@ def run_rag_pipeline(
     logger.debug("mode=%s file=%s", mode, file_name)
 
     query_type = classify_query(query)
+    print("\n" + "="*50)
+    print("DIAGNOSTIC LOG FOR QUERY:", query)
+    print("Classified intent:", query_type)
+    print("GROQ_API_KEY present:", bool(os.getenv("GROQ_API_KEY")))
+    print("GROQ_MODEL:", os.getenv("GROQ_MODEL"))
+    print("LLM_PROVIDER:", os.getenv("LLM_PROVIDER"))
+    print("="*50 + "\n")
     if _is_usage_like_query(query):
         query_type = "find_usage"
     effective_mode = "file_only" if mode == "file_only" and str(
@@ -1014,24 +1034,8 @@ def run_rag_pipeline(
     }
     has_multi_file_context = len(unique_files) > 1
     repo_context = repo_indexed or has_multi_file_context
-    force_llm = query_type in {"explain", "flow"} or (
-        repo_context and _is_broad_or_vague_query(query)
-    )
-
-    if force_llm:
-        _log_generation_route("LLM")
-        log_memory("rag:before_llm_call")
-        answer = generate_answer(
-            query=query, context=context, chunks=retrieved_chunks)
-        return answer, retrieved_chunks
-
-    if query_type == "search":
-        _log_generation_route("LOCAL")
-        answer = _generate_local_answer(
-            query=query, context=context, chunks=retrieved_chunks)
-        return answer, retrieved_chunks
-
-    # explain
+    # Always call generate_answer to allow configured LLMs (Groq, OpenAI, Ollama)
+    # to synthesize the response, falling back to local heuristic extraction on failure.
     _log_generation_route("LLM")
     log_memory("rag:before_llm_call")
     answer = generate_answer(

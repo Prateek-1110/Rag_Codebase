@@ -10,7 +10,7 @@ function QueryInput({ query, setQuery, onSubmit, loading }) {
 
   return (
     <div className="mx-auto w-full max-w-4xl relative group transform-gpu transition-transform duration-300 hover:scale-[1.01]">
-      <div className="absolute -inset-1 rounded-[2rem] bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 opacity-25 blur-xl transition-all duration-500 group-focus-within:opacity-75 group-focus-within:blur-2xl group-hover:opacity-50"></div>
+      <div className="absolute -inset-1 rounded-[2rem] bg-gradient-to-r from-blue-600 via-sky-500 to-blue-800 opacity-25 blur-xl transition-all duration-500 group-focus-within:opacity-75 group-focus-within:blur-2xl group-hover:opacity-50"></div>
       <div className="relative flex w-full items-center gap-3 md:gap-4 rounded-3xl border border-white/10 bg-[#020617]/80 p-2 shadow-2xl backdrop-blur-2xl transition-all duration-300 group-focus-within:border-blue-500/50 group-focus-within:bg-[#020617]/90 group-focus-within:shadow-[0_0_40px_rgba(59,130,246,0.3)]">
         
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400 ml-1 border border-blue-500/20">
@@ -30,7 +30,7 @@ function QueryInput({ query, setQuery, onSubmit, loading }) {
           whileTap={{ scale: loading || !query.trim() ? 1 : 0.95 }}
           onClick={onSubmit}
           disabled={loading || !query.trim()}
-          className="relative overflow-hidden mr-1 flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 px-8 text-sm font-bold tracking-wide text-white shadow-lg transition-all disabled:opacity-50 disabled:grayscale hover:shadow-blue-500/25"
+          className="relative overflow-hidden mr-1 flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 to-sky-600 px-8 text-sm font-bold tracking-wide text-white shadow-lg transition-all disabled:opacity-50 disabled:grayscale hover:shadow-blue-500/25"
         >
           {loading ? (
              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>

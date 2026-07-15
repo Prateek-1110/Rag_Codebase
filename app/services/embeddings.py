@@ -1,75 +1,50 @@
 import os
-import json
-import logging
-from urllib import request as urllib_request
-from urllib.error import URLError, HTTPError
-from app.services.tls_http import format_tls_error
 
-logger = logging.getLogger(__name__)
+from google import genai
 
-DEFAULT_EMBEDDING_MODEL = "openai/text-embedding-3-small"
+DEFAULT_EMBEDDING_MODEL = "text-embedding-004"
+
+client = None
 
 
-def get_embedding_model(model_name: str | None = None) -> str:
-    if model_name:
-        return model_name
-    return str(os.getenv("OPENROUTER_EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL)).strip()
+def get_client():
+	global client
+	if client is None:
+		api_key = os.getenv("GEMINI_API_KEY")
+		if not api_key:
+			raise ValueError("GEMINI_API_KEY not set")
+		client = genai.Client(api_key=api_key)
+	return client
 
 
-def generate_embeddings(chunks: list[str], model_name: str | None = None) -> list[list[float]]:
-    if not chunks:
-        return []
-
-    api_key = str(os.getenv("OPENROUTER_API_KEY", "")).strip()
-    if not api_key:
-        logger.warning("OPENROUTER_API_KEY is not set. Cannot generate embeddings.")
-        return [[] for _ in chunks]
-
-    if not model_name:
-        model_name = get_embedding_model()
-
-    payload = {
-        "model": model_name,
-        "input": chunks
-    }
-
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib_request.Request(
-        "https://openrouter.ai/api/v1/embeddings",
-        data=data,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "User-Agent": "python-requests/2.31.0",
-        },
-        method="POST"
-    )
-
-    try:
-        with urllib_request.urlopen(req, timeout=30.0) as response:
-            if response.status != 200:
-                raise ValueError(f"OpenRouter embedding returned status {response.status}")
-            
-            body = json.loads(response.read().decode("utf-8"))
-            data_list = body.get("data", [])
-            # Sort data by its index to preserve input ordering
-            data_list.sort(key=lambda x: x.get("index", 0))
-            
-            embeddings = [d.get("embedding", []) for d in data_list]
-            # Ensure return list length matches input chunks
-            if len(embeddings) < len(chunks):
-                embeddings.extend([[] for _ in range(len(chunks) - len(embeddings))])
-            return embeddings[:len(chunks)]
-    except Exception as exc:
-        logger.error("OpenRouter embedding generation failed: %s", exc)
-        return [[] for _ in chunks]
+def get_embedding_model(model_name: str = DEFAULT_EMBEDDING_MODEL) -> str:
+	return model_name
 
 
-def embedding_dimension(model_name: str | None = None) -> int:
-    try:
-        embeddings = generate_embeddings(["dimension probe"], model_name=model_name)
-        if embeddings and embeddings[0]:
-            return len(embeddings[0])
-    except Exception:
-        pass
-    return 1536  # Default dimension for text-embedding-3-small
+def generate_embeddings(chunks: list[str], model_name: str = DEFAULT_EMBEDDING_MODEL) -> list[list[float]]:
+	if not chunks:
+		return []
+
+	embeddings: list[list[float]] = []
+	for chunk in chunks:
+		try:
+			gemini_client = get_client()
+			response = gemini_client.models.embed_content(
+				model=model_name,
+				contents=chunk,
+			)
+			embeddings.append(list(response.embeddings[0].values))
+		except Exception:
+			embeddings.append([])
+
+	return embeddings
+
+
+def embedding_dimension(model_name: str = DEFAULT_EMBEDDING_MODEL) -> int:
+	try:
+		gemini_client = get_client()
+		response = gemini_client.models.embed_content(model=model_name, contents="dimension probe")
+		embedding = list(response.embeddings[0].values)
+		return len(embedding)
+	except Exception:
+		return 0
