@@ -18,12 +18,18 @@ function QueryInput({ query, setQuery, onSubmit, loading }) {
         </div>
 
         <input
+          id="search-query-input"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Ask anything about your codebase..."
           className="flex-1 bg-transparent px-2 py-4 text-base font-medium text-slate-100 outline-none placeholder:text-slate-500 font-['Outfit']"
         />
+
+        {/* Keyboard shortcut indicator */}
+        <div className="hidden sm:flex items-center gap-1.5 rounded-lg border border-white/5 bg-white/5 px-2 py-1 text-[10px] font-bold text-slate-400 font-sans tracking-wide shrink-0">
+          <span>Ctrl</span><span>K</span>
+        </div>
 
         <motion.button
           whileHover={{ scale: loading || !query.trim() ? 1 : 1.05 }}
