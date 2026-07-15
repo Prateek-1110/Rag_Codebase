@@ -25,6 +25,7 @@ function App() {
   // New premium states
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   
   const answerRef = useRef(null);
 
@@ -345,9 +346,8 @@ function App() {
           {/* Navigation Links & Action */}
           <div className="flex items-center gap-6">
             <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
-              <a href="#" className="hover:text-blue-400 transition-colors">Docs</a>
               <a href="https://github.com/Prateek-1110/Rag_Codebase" target="_blank" rel="noreferrer" className="hover:text-blue-400 transition-colors">GitHub</a>
-              <a href="#" className="hover:text-blue-400 transition-colors">About</a>
+              <button onClick={() => setIsAboutOpen(true)} className="hover:text-blue-400 transition-colors cursor-pointer outline-none">About</button>
             </div>
             <button
               onClick={() => setIsHistoryOpen(true)}
@@ -661,8 +661,89 @@ function App() {
           )}
         </div>
 
-      </div>
+      {/* About Modal */}
+      <AnimatePresence>
+        {isAboutOpen && (
+          <>
+            {/* Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAboutOpen(false)}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md"
+            />
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="fixed inset-0 z-50 m-auto max-h-[520px] w-[90%] max-w-xl overflow-hidden rounded-3xl border border-blue-500/25 bg-[#020617]/95 p-6 shadow-[0_0_50px_rgba(59,130,246,0.3)] backdrop-blur-2xl flex flex-col justify-between"
+            >
+              <div>
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-r from-blue-500 to-sky-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                    </div>
+                    <h2 className="text-lg font-bold tracking-tight text-white font-['Outfit']">
+                      About RepoAtlas
+                    </h2>
+                  </div>
+                  <button
+                    onClick={() => setIsAboutOpen(false)}
+                    className="rounded-xl border border-white/10 p-2 hover:bg-white/5 transition-colors cursor-pointer"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
 
+                <div className="space-y-4 text-sm leading-relaxed text-slate-350 font-sans">
+                  <p>
+                    <strong>RepoAtlas</strong> is an AI-driven codebase reasoning engine built to parse, structure, and understand complex software systems deterministically.
+                  </p>
+                  
+                  <div className="space-y-3 rounded-2xl bg-blue-500/5 border border-blue-500/10 p-4">
+                    <div className="flex gap-3">
+                      <span className="text-blue-400 mt-1 shrink-0">•</span>
+                      <p className="text-xs text-slate-200">
+                        Designed hybrid retrieval fusing semantic search (Qdrant) with BM25 via Reciprocal Rank Fusion and Cross-Encoder reranking (<code className="font-mono text-blue-300 bg-blue-500/10 px-1 rounded">ms-marco-MiniLM</code>), achieving <strong>92% File Hit Rate@3</strong>.
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="text-blue-400 mt-1 shrink-0">•</span>
+                      <p className="text-xs text-slate-200">
+                        Implemented an LLM intent classifier routing across four query types; <code className="font-mono text-blue-300 bg-blue-500/10 px-1 rounded">flow</code> / <code className="font-mono text-blue-300 bg-blue-500/10 px-1 rounded">find_usage</code> bypass vector search and traverse a PostgreSQL call graph for deterministic dependency resolution.
+                      </p>
+                    </div>
+                    <div className="flex gap-3">
+                      <span className="text-blue-400 mt-1 shrink-0">•</span>
+                      <p className="text-xs text-slate-200">
+                        Deployed Groq with Ollama local fallback, validated via a custom RAG assessment harness (<strong>Faithfulness: 0.91, Answer Relevancy: 0.88, Latency p95: ~1.2s</strong>).
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-400">
+                    To learn more about configuration, pipelines, and evaluation metrics, read the repository <a href="https://github.com/Prateek-1110/Rag_Codebase/blob/master/README.md" target="_blank" rel="noreferrer" className="text-blue-400 hover:underline inline-flex items-center gap-0.5">README.md<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end">
+                <button
+                  onClick={() => setIsAboutOpen(false)}
+                  className="rounded-xl bg-white hover:bg-slate-200 text-slate-950 font-bold px-6 py-2.5 text-xs tracking-wider transition-all"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      </div>
     </motion.div>
   );
 }
